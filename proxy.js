@@ -1,29 +1,32 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
+// api/chat.js
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+  const { model, message } = req.body;
+  const API_KEY = "f193e639dca0455aa5de331d602bb59f"; // your key (safe here)
 
-const API_KEY = process.env.SAMBANOVA_API_KEY; // store in .env
-const API_URL = "https://api.sambanova.ai/v1/chat/completions";
-
-app.post("/chat", async (req, res) => {
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch("https://api.sambanova.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(req.body)
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: "You are a helpful, friendly assistant." },
+          { role: "user", content: message }
+        ],
+        max_tokens: 600,
+        temperature: 0.7
+      })
     });
+
     const data = await response.json();
-    res.json(data);
+    const reply = data?.choices?.[0]?.message?.content || "⚠️ No response.";
+    res.status(200).json({ reply });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-app.listen(3000, () => console.log("✅ Proxy running on http://localhost:3000"));
+}
